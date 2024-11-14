@@ -5,6 +5,8 @@ use tui::backend::Backend;
 use tui::widgets::{Block, Borders, Table, Row};
 use tui::layout::Rect;
 use crate::process::data::get_processes;
+use tui::layout::Constraint;
+
 
 pub fn render_layout<B: Backend>(f: &mut Frame<B>, layout: &[Rect]) {
     let processes = get_processes();
