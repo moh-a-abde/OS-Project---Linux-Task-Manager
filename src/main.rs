@@ -1,22 +1,48 @@
+// procfs crate provides Rust bindings
+// to read the /proc filesystem
+// and parse files containing process
+// information to retrieve process metrics
 use procfs::process::*;
-use std::io::{self, Write};
-use std::cmp::Ordering;
 
+// provides methods for writing data to
+// output streams
+use std::io::{self, Write};
+
+
+// store information about a process
 struct ProcessUsage {
+
+    // process ID
     pid: i32,
+
+    // comm
     name: String,
-    cpu_usage: u64,       // CPU usage in cumulative ticks
-    memory_usage: u64,    // Memory usage in kilobytes
+
+    // utime + stime - clock ticks
+
+    cpu_usage: u64,
+
+    // virtual memory size - bytes      
+    memory_usage: u64,
 }
 
+// man proc
+// /proc/[pid]/stat
 fn get_processes() -> Vec<ProcessUsage> {
+    
+    // declare mutable variable
     let mut processes: Vec<ProcessUsage> = Vec::new();
 
     for process_result in all_processes().unwrap() {
         if let Ok(process) = process_result {
             if let Ok(stat) = process.stat() {
-                let cpu_usage = stat.utime + stat.stime;     // Cumulative CPU time in ticks
-                let memory_usage = stat.vsize / 1024;        // Convert memory usage to KB
+
+		// measured in clock ticks
+		// total cpu time spent on this process -> utime(user) + stime(kernel)
+                let cpu_usage = stat.utime + stat.stime;     // cumulative cpu time
+
+		// converts the virtual memory size (vsize) from bytes to kilobytes
+                let memory_usage = stat.vsize / 1024;        // convert memory usage
 
                 processes.push(ProcessUsage {
                     pid: stat.pid,
@@ -59,8 +85,8 @@ fn print_process_info(pid: i32) {
         Ok(process) => {
             match process.stat() {
                 Ok(stat) => {
-                    let cpu_usage = stat.utime + stat.stime; // Cumulative CPU time in ticks
-                    let memory_usage = stat.vsize / 1024;    // Convert memory usage to KB
+                    let cpu_usage = stat.utime + stat.stime;
+                    let memory_usage = stat.vsize / 1024; 
                     println!("PID: {}", stat.pid);
                     println!("Command: {}", stat.comm);
                     println!("State: {}", stat.state);
@@ -75,19 +101,34 @@ fn print_process_info(pid: i32) {
 }
 
 fn main() {
-    // Prompt the user to choose between viewing a single process or sorted processes
-    print!("Enter 'cpu' or 'memory' to view sorted processes, or a specific process ID (PID): ");
+
+    // sorted processes
+    // prompt the user to choose between viewing a single process or sorted processes
+    println!("-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-");
+    println!("Welcome to THE Process Manager ");
+    println!("-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-");
+    println!("1. Enter 'CPU' or 'Memory' to view sorted processes:");
+    println!("2. Enter a specific process ID (PID) to view it's information: ");
+    
+    // force output buffer to flush; immediately writes any buffered output to the screen
     io::stdout().flush().unwrap();
 
-    // Read user input
+    // user input
+    // declare mutable variable
     let mut input = String::new();
+
+    // reads a line of text entered by the user and stores it in input
+    // mutable reference to input, allows read_line to modify input
+    // with data read from standard input
     io::stdin().read_line(&mut input).expect("Failed to read line");
-    let input = input.trim();
+    
+    // rebind input to immutable string slice
+    let input = input.trim().to_lowercase(); // .trim(); removes any leading or trailing whitespace
 
     if input == "cpu" || input == "memory" {
-        print_all_processes_sorted(input);
+        print_all_processes_sorted(&input);
     } else {
-        // Parse input as PID and display information for the specific process
+        // parse input as PID and display information for the specific process
         match input.parse::<i32>() {
             Ok(pid) => print_process_info(pid),
             Err(_) => eprintln!("Invalid input: Please enter 'cpu', 'memory', or a valid PID number."),
