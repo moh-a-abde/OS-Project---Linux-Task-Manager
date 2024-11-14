@@ -32,9 +32,13 @@ fn get_processes() -> Vec<ProcessUsage> {
     
     // declare mutable variable
     let mut processes: Vec<ProcessUsage> = Vec::new();
-
+   
+    // iterate over all proccesses in /proc filesystem
     for process_result in all_processes().unwrap() {
+
+        // ensure process result is successful 
         if let Ok(process) = process_result {
+            // retrieve process stats
             if let Ok(stat) = process.stat() {
 
 		// measured in clock ticks
@@ -43,7 +47,8 @@ fn get_processes() -> Vec<ProcessUsage> {
 
 		// converts the virtual memory size (vsize) from bytes to kilobytes
                 let memory_usage = stat.vsize / 1024;        // convert memory usage
-
+                
+                // add process information to vector
                 processes.push(ProcessUsage {
                     pid: stat.pid,
                     name: stat.comm.clone(),
@@ -53,9 +58,12 @@ fn get_processes() -> Vec<ProcessUsage> {
             }
         }
     }
+    // return vector with all process information
     processes
 }
 
+// print each proccess in the vector
+// with detailed stats
 fn print_sorted_processes(processes: Vec<ProcessUsage>) {
     for process in processes {
         println!(
@@ -65,24 +73,39 @@ fn print_sorted_processes(processes: Vec<ProcessUsage>) {
     }
 }
 
-fn print_all_processes_sorted(sort_by: &str) {
+// function to sort processes
+// by either:
+// 1. CPU
+// 2. Memory Usage
+// & display them
+fn print_all_processes_sorted(sort_by: &str) -> bool {
     let mut processes = get_processes();
 
     match sort_by {
-        "cpu" => processes.sort_by(|a, b| b.cpu_usage.cmp(&a.cpu_usage)),
-        "memory" => processes.sort_by(|a, b| b.memory_usage.cmp(&a.memory_usage)),
+        "cpu" => {
+            processes.sort_by(|a, b| b.cpu_usage.cmp(&a.cpu_usage));
+            print_sorted_processes(processes);
+            true
+        },
+        "memory" => {
+            processes.sort_by(|a, b| b.memory_usage.cmp(&a.memory_usage));
+            print_sorted_processes(processes);
+            true
+        },
         _ => {
             eprintln!("Invalid sort option. Please use 'cpu' or 'memory'.");
-            return;
+            false
         }
     }
-
-    print_sorted_processes(processes);
 }
 
+// function to print detailed information
+// for a specific proccess by PID
 fn print_process_info(pid: i32) {
     match Process::new(pid) {
         Ok(process) => {
+
+            // retrieve stats for given process
             match process.stat() {
                 Ok(stat) => {
                     let cpu_usage = stat.utime + stat.stime;
@@ -100,39 +123,36 @@ fn print_process_info(pid: i32) {
     }
 }
 
+// main.rs
 fn main() {
 
-    // sorted processes
-    // prompt the user to choose between viewing a single process or sorted processes
     println!("-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-");
     println!("Welcome to THE Process Manager ");
     println!("-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-");
-    println!("1. Enter 'CPU' or 'Memory' to view sorted processes:");
-    println!("2. Enter a specific process ID (PID) to view it's information: ");
     
-    // force output buffer to flush; immediately writes any buffered output to the screen
-    io::stdout().flush().unwrap();
+    loop {
+        println!("1. Enter 'CPU' or 'Memory' to view sorted processes:");
+        println!("2. Enter a specific process ID (PID) to view its information: ");
+        
+        io::stdout().flush().unwrap();
 
-    // user input
-    // declare mutable variable
-    let mut input = String::new();
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).expect("Failed to read line");
 
-    // reads a line of text entered by the user and stores it in input
-    // mutable reference to input, allows read_line to modify input
-    // with data read from standard input
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    // rebind input to immutable string slice
-    let input = input.trim().to_lowercase(); // .trim(); removes any leading or trailing whitespace
+        let input = input.trim().to_lowercase();
 
-    if input == "cpu" || input == "memory" {
-        print_all_processes_sorted(&input);
-    } else {
-        // parse input as PID and display information for the specific process
-        match input.parse::<i32>() {
-            Ok(pid) => print_process_info(pid),
-            Err(_) => eprintln!("Invalid input: Please enter 'cpu', 'memory', or a valid PID number."),
+        if input == "cpu" || input == "memory" {
+            if print_all_processes_sorted(&input) {
+                break;
+            }
+        } else {
+            match input.parse::<i32>() {
+                Ok(pid) => {
+                    print_process_info(pid);
+                    break;
+                }
+                Err(_) => eprintln!("Invalid input: Please enter 'cpu', 'memory', or a valid PID number."),
+            }
         }
     }
 }
-
