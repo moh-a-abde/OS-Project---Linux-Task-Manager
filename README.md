@@ -17,3 +17,8 @@ A Rust-based command-line application that monitors and displays detailed proces
 ## Prerequisites
 - **Rust**: Ensure you have Rust installed on your machine.
 - **Linux**: This tool relies on the `/proc` filesystem, which is available on Linux-based systems.
+
+## Structure
+'app.rs' and 'main.rs' for the primary application setup.
+'process/data.rs' and 'process/display.rs' for handling process-related data.
+'tui/render.rs' and 'tui/mod.rs' for TUI layout and rendering.

@@ -11,6 +11,7 @@ description = "A TUI-based process manager built with Rust."
 procfs = "0.15.1"
 tui = "0.19"
 crossterm = "0.26"
+sysinfo = "0.21"
 
 [package.metadata.deb]
 maintainer = "Mohamed Abdel-Hamid <moh.aymann@aucegypt.edu>"

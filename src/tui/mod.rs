@@ -9,20 +9,33 @@ use tui::layout::{Layout, Constraint};
 use crate::process::data::{get_processes};
 use crate::process::display::get_process_info;
 
+use tui::widgets::{Paragraph, Block, Borders};
+use tui::layout::{Constraint, Direction};
+use tui::style::{Style, Color};
+
+
 
 pub fn init_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>, io::Error> {
     let backend = CrosstermBackend::new(io::stdout());
     let terminal = Terminal::new(backend)?;
     Ok(terminal)
 }
-
 pub fn main_loop(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<(), Box<dyn std::error::Error>> {
     let mut scroll_offset = 0;
     let mut input = String::new();
     let mut command_output = String::new();
     let mut processes = get_processes();
     let mut sort_by = String::from("none");
+    let system_info_text = format!(
+    "CPU: {}\nMemory Usage: {} / {} MB\nUptime: {}",
+    cpu_name, used_memory, total_memory, uptime
+);
+    let system_info = Paragraph::new(system_info_text)
+    .style(Style::default().fg(Color::White))
+    .block(Block::default().borders(Borders::ALL).title("System Information"));
+    f.render_widget(system_info, layout[0]);  // Use top layout slot for system info
 
+    
     loop {
         // Sort processes based on the sort criterion
         if sort_by == "cpu" {
@@ -71,5 +84,3 @@ pub fn main_loop(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()
     }
     Ok(())
 }
-
-
