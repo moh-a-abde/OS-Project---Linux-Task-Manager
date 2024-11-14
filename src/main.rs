@@ -14,6 +14,9 @@ use procfs::process::*;
 // for process termination when user requests to exit
 use std::process;
 
+// for storing filters
+use std::collections::HashSet;
+
 // provides methods for writing data to output streams
 use std::io::{self, Write, BufRead};
 
@@ -141,9 +144,11 @@ fn print_all_processes_sorted(sort_by: &str) -> bool {
     let (processes, total_used_memory) = get_processes();
     let total_cpu_ticks = get_total_cpu_ticks();
     
-    println!("Do you wish to filter the processes based on state? If so, enter the states you want to filter by idle (I), sleeping (S), running (R), zombie (Z), else enter (N)");
-    
-    // Declare `final_processes` outside the loop to prevent reinitialization
+    println!("Do you wish to filter the processes based on state?");
+    println!("Enter the states you want to filter by: idle (I), sleeping (S), running (R), zombie (Z)");
+    println!("For example, enter 'I,S' to filter by idle and sleeping processes, or 'N' to skip filtering.");
+
+    // Initialize final_processes with all processes as default
     let mut final_processes = processes.clone();
 
     loop {
@@ -152,15 +157,31 @@ fn print_all_processes_sorted(sort_by: &str) -> bool {
         let mut input = String::new();
         io::stdin().read_line(&mut input).expect("Failed to read line");
 
-        let input = input.trim().to_uppercase(); // Convert to uppercase to match filter options
+        let input = input.trim().to_uppercase(); // Convert input to uppercase for case-insensitive comparison
 
-        if input == "I" || input == "S" || input == "R" || input == "Z" {
-            final_processes = filter_process_info(&processes, &input); // Pass by reference
+        if input == "N" {
+            // No filtering, use the original processes
             break;
-        } else if input == "N" {
-            break; // Keep final_processes as the original unfiltered list
         } else {
-            println!("Invalid input! Try again.");
+            // Split input by commas and filter for valid states
+            let filter_by_states: HashSet<char> = input
+                .split(',')
+                .map(|state| state.trim().chars().next().unwrap_or_default()) // Take the first character
+                .filter(|&state| matches!(state, 'I' | 'S' | 'R' | 'Z')) // Only keep valid states
+                .collect();
+
+            // Check if all provided states are valid
+            let all_valid = input
+                .split(',')
+                .all(|state| state.trim().len() == 1 && matches!(state.trim(), "I" | "S" | "R" | "Z"));
+
+            if !all_valid || filter_by_states.is_empty() {
+                println!("Invalid input! Please enter valid states like 'I,S' or 'R,Z'.");
+            } else {
+                // Filter processes based on the selected states
+                final_processes = filter_process_info(&processes, &filter_by_states);
+                break;
+            }
         }
     }
 
@@ -258,19 +279,14 @@ fn get_total_cpu_ticks() -> u64 {
 }
 
 // Function to filter processes based on the state
-fn filter_process_info(processes: &[ProcessUsage], filter_by: &str) -> Vec<ProcessUsage> {
+fn filter_process_info(processes: &[ProcessUsage], filter_by_states: &HashSet<char>) -> Vec<ProcessUsage> {
     processes
         .iter()
-        .filter(|process| match filter_by {
-            "I" => process.state == 'I',
-            "S" => process.state == 'S',
-            "R" => process.state == 'R',
-            "Z" => process.state == 'Z',
-            _ => false, // Return false for any unknown filter
-        })
+        .filter(|process| filter_by_states.contains(&process.state))
         .cloned() // Clone each ProcessUsage since we're using references
         .collect()
 }
+
 /* MAIN:
    interact with user*/
 fn main() {
