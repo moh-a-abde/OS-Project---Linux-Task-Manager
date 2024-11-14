@@ -6,7 +6,7 @@ use tui::backend::CrosstermBackend;
 use tui::Terminal;
 use std::io::{self, Stdout};
 use tui::layout::{Layout, Constraint};
-use crate::process::data::{get_processes, ProcessUsage};
+use crate::process::data::{get_processes};
 use crate::process::display::get_process_info;
 
 

@@ -2,6 +2,8 @@
 name = "the_process_manager"
 version = "0.1.0"
 edition = "2021"
+license = "AUC"
+description = "A TUI-based process manager built with Rust."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
