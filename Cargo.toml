@@ -7,3 +7,14 @@ edition = "2021"
 
 [dependencies]
 procfs = "0.15.1"
+
+[package.metadata.deb]
+maintainer = "Mohamed Abdel-Hamid <moh.aymann@aucegypt.edu>"
+copyright = "2024, Mohamed Abdel-Hamid <moh.aymann@aucegypt.edu>"
+extended-description = """A Linux Task Manager based on Rust!"""
+depends = "$auto"
+section = "utility"
+priority = "optional"
+assets = [
+ ["target/release/the_process_manager", "usr/bin/", "755"],
+]
