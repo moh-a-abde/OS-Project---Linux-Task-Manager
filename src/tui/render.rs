@@ -9,7 +9,7 @@ use crate::process::data::ProcessUsage;
 use sysinfo::{System, SystemExt, ProcessorExt};
 
 pub fn render_status_bar<B: Backend>(f: &mut Frame<B>, area: Rect) {
-    let status_text = "Commands: [q] Quit | [cpu/memory/ppid/state/owner/start_time/priority] Sort";
+    let status_text = "Commands: [q] Quit | [cpu/memory/ppid/state/start_time/priority] Sort | | [k] Scroll Up | [j] Scroll Down";
     
     let status_bar = Paragraph::new(status_text)
         .style(Style::default().fg(Color::Gray))
@@ -25,12 +25,13 @@ pub fn render_system_info<B: Backend>(f: &mut Frame<B>, area: Rect, system: &Sys
 
     let memory_used = system.used_memory();
     let total_memory = system.total_memory();
+    let memory_percentage = (memory_used as f64 / total_memory as f64) * 100.0; // Calculate memory percentage
     let uptime = system.uptime();
 
     // Format the information
     let info = format!(
-        "CPU Usage: {:.2}% | Memory: {}/{} KB | Uptime: {}s",
-        cpu_usage, memory_used, total_memory, uptime
+        "CPU Usage: {:.2}% | Memory: {}/{} KB ({:.2}%) | Uptime: {}s",
+        cpu_usage, memory_used, total_memory, memory_percentage, uptime
     );
 
     // Create the paragraph widget for the system info header

@@ -1,3 +1,4 @@
+#![allow(unused_assignments)]
 pub mod layout;
 pub mod render;
 pub mod event;
@@ -5,12 +6,10 @@ pub mod event;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 use std::io::{self, Stdout};
-use tui::layout::{Layout, Constraint, Direction};
+use tui::layout::{Layout, Constraint};
 use crate::process::data::{get_processes};
 use crate::process::display::get_process_info;
 
-use tui::widgets::{Paragraph, Block, Borders};
-use tui::style::{Style, Color};
 use sysinfo::{System, SystemExt};
 
 
