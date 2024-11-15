@@ -4,7 +4,9 @@ use std::io::{self, BufRead};
 use std::time::{SystemTime, UNIX_EPOCH, Duration};
 use chrono::DateTime;
 use chrono::Local;
+use std::collections::HashSet;
 
+#[derive(Clone)]
 pub struct ProcessUsage {
     pub pid: i32,
     pub ppid: i32,           // New field for Parent PID
@@ -14,6 +16,15 @@ pub struct ProcessUsage {
     pub state: String,       // New field for process state
     pub start_time: String,     // New field for start time
     pub priority: String,       // New field for priority
+}
+
+/// Filters a list of processes based on their state.
+pub fn filter_process_info(processes: &[ProcessUsage], filter_by_states: &HashSet<char>) -> Vec<ProcessUsage> {
+    processes
+        .iter()
+        .filter(|process| filter_by_states.contains(&process.state.chars().next().unwrap_or_default()))
+        .cloned()
+        .collect()
 }
 
 fn convert_state(state: char) -> String {

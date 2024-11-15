@@ -9,12 +9,13 @@ use crate::process::data::ProcessUsage;
 use sysinfo::{System, SystemExt, ProcessorExt};
 
 pub fn render_status_bar<B: Backend>(f: &mut Frame<B>, area: Rect) {
-    let status_text = "Commands: [q] Quit | [cpu/memory/ppid/state/start_time/priority] Sort | | [k] Scroll Up | [j] Scroll Down";
+    let status_text = "Commands: [q] Quit | [cpu/memory/ppid/state/start_time/priority] Sort | /<states> Filter | [k] Scroll Up | [j] Scroll Down";
     
     let status_bar = Paragraph::new(status_text)
         .style(Style::default().fg(Color::Gray))
         .block(Block::default().borders(Borders::ALL).title("Help"))
-        .alignment(Alignment::Left);
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: false });
     
     f.render_widget(status_bar, area);
 }

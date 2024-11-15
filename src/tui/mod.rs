@@ -11,6 +11,10 @@ use crate::process::data::{get_processes};
 use crate::process::display::get_process_info;
 
 use sysinfo::{System, SystemExt};
+use std::collections::HashSet;
+
+use crate::process::data::filter_process_info;
+
 
 
 pub fn init_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>, io::Error> {
@@ -25,11 +29,32 @@ pub fn main_loop(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()
     let mut input = String::new();
     let mut command_output = String::new();
     let mut processes = get_processes();
+    let mut filtered_processes = processes.clone();
     let mut sort_by = String::from("none");
+    let mut active_filter: Option<HashSet<char>> = None;
 
     loop {
         // Refresh system information
         system.refresh_all();
+        processes = get_processes(); // Reload processes to get updated data
+
+        // Apply sorting to the processes
+        match sort_by.as_str() {
+            "cpu" => processes.sort_by(|a, b| b.cpu_usage.partial_cmp(&a.cpu_usage).unwrap_or(std::cmp::Ordering::Equal)),
+            "memory" => processes.sort_by(|a, b| b.memory_usage.partial_cmp(&a.memory_usage).unwrap_or(std::cmp::Ordering::Equal)),
+            "ppid" => processes.sort_by(|a, b| a.ppid.cmp(&b.ppid)),
+            "state" => processes.sort_by(|a, b| a.state.cmp(&b.state)),
+            "start_time" => processes.sort_by(|a, b| a.start_time.cmp(&b.start_time)),
+            "priority" => processes.sort_by(|a, b| a.priority.cmp(&b.priority)),
+            _ => {}
+        }
+
+        // Apply filtering if an active filter exists
+        if let Some(filter_by_states) = &active_filter {
+            filtered_processes = filter_process_info(&processes, filter_by_states);
+        } else {
+            filtered_processes = processes.clone(); // No filter; display all processes
+        }
 
         // Draw the TUI layout
         terminal.draw(|f| {
@@ -45,50 +70,55 @@ pub fn main_loop(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()
                 .split(f.size());
 
             render::render_system_info(f, chunks[0], &system); // Render the system info header
-            render::render_layout(f, &chunks[1..], scroll_offset, &input, &command_output, &processes);
+            render::render_layout(f, &chunks[1..], scroll_offset, &input, &command_output, &filtered_processes);
         })?;
 
         // Handle events (including user input)
         match event::handle_events(&mut input)? {
-    event::EventAction::Quit => break,
-    event::EventAction::ScrollDown => scroll_offset += 1,
-    event::EventAction::ScrollUp => {
-        if scroll_offset > 0 {
-            scroll_offset -= 1;
-        }
-    }
-    event::EventAction::ExecuteCommand(command) => {
-        // Sorting or displaying process info based on command input
-        if command == "cpu" || command == "memory" || command == "ppid" || command == "state" 
-            || command == "start_time" || command == "priority" {
-            
-            // Sort by the specified field
-            sort_by = command.clone();
-            command_output = format!("Sorting processes by {}", command);
-
-            // Apply sorting based on the current sort_by value
-            match sort_by.as_str() {
-                "cpu" => processes.sort_by(|a, b| b.cpu_usage.partial_cmp(&a.cpu_usage).unwrap_or(std::cmp::Ordering::Equal)),
-                "memory" => processes.sort_by(|a, b| b.memory_usage.partial_cmp(&a.memory_usage).unwrap_or(std::cmp::Ordering::Equal)),
-                "ppid" => processes.sort_by(|a, b| a.ppid.cmp(&b.ppid)),
-                "state" => processes.sort_by(|a, b| a.state.cmp(&b.state)),
-                "start_time" => processes.sort_by(|a, b| a.start_time.cmp(&b.start_time)),
-                "priority" => processes.sort_by(|a, b| a.priority.cmp(&b.priority)),
-                _ => {}
+            event::EventAction::Quit => break,
+            event::EventAction::ScrollDown => scroll_offset += 1,
+            event::EventAction::ScrollUp => {
+                if scroll_offset > 0 {
+                    scroll_offset -= 1;
+                }
             }
+            event::EventAction::ExecuteCommand(command) => {
+                if command == "cpu" || command == "memory" || command == "ppid" || command == "state" 
+                    || command == "start_time" || command == "priority" {
+                    
+                    // Sort by the specified field
+                    sort_by = command.clone();
+                    command_output = format!("Sorting processes by {}", command);
 
-        } else if let Ok(pid) = command.parse::<i32>() {
-            // Display details for the process with the specified PID
-            command_output = get_process_info(pid);
-        } else {
-            command_output = "Invalid command. Please enter 'cpu', 'memory', 'ppid', 'state', 'start_time', 'priority', or a valid PID.".to_string();
+                } else if command.starts_with("/") {
+                    // Filtering processes by state using the `/` prefix
+                    let filter_input = command[1..].to_uppercase(); // Remove the `/` and convert to uppercase
+                    let filter_by_states: HashSet<char> = filter_input
+                        .chars()
+                        .filter(|&state| matches!(state, 'I' | 'S' | 'R' | 'Z')) // Only keep valid states
+                        .collect();
+
+                    if filter_by_states.is_empty() {
+                        command_output = "Invalid input! Please enter valid states like '/IS' or '/RZ'.".to_string();
+                        active_filter = None; // Clear any active filter
+                    } else {
+                        // Set active filter
+                        active_filter = Some(filter_by_states);
+                        command_output = format!("Filtered processes by states: {:?}", active_filter);
+                    }
+                } else if let Ok(pid) = command.parse::<i32>() {
+                    // Display details for the process with the specified PID
+                    command_output = get_process_info(pid);
+                } else {
+                    command_output = "Invalid command. Please enter 'cpu', 'memory', 'ppid', 'state', 'start_time', 'priority', or '/<states>' for filtering, or valid PID.".to_string();
+                }
+                
+                input.clear();
+            }
+            event::EventAction::None => {}
         }
-        
-        input.clear();
     }
-    event::EventAction::None => {}
-}
-    }
+
     Ok(())
 }
 
