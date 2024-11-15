@@ -5,6 +5,34 @@ use tui::layout::{Rect, Constraint, Alignment};
 use tui::style::{Style, Modifier, Color};
 use crate::process::data::ProcessUsage;
 
+// Import the necessary modules
+use sysinfo::{System, SystemExt, ProcessorExt};
+
+// Function to render the system information header
+pub fn render_system_info<B: Backend>(f: &mut Frame<B>, area: Rect, system: &System) {
+    let cpu_usage = system.processors().iter().map(|p| p.cpu_usage()).sum::<f32>() / system.processors().len() as f32;
+
+    let memory_used = system.used_memory();
+    let total_memory = system.total_memory();
+    let uptime = system.uptime();
+
+    // Format the information
+    let info = format!(
+        "CPU Usage: {:.2}% | Memory: {}/{} KB | Uptime: {}s",
+        cpu_usage, memory_used, total_memory, uptime
+    );
+
+    // Create the paragraph widget for the system info header
+    let paragraph = Paragraph::new(info)
+        .style(Style::default().fg(Color::White))
+        .block(Block::default().borders(Borders::ALL).title("System Information"))
+        .alignment(Alignment::Center);
+
+    // Render the system info header at the specified area
+    f.render_widget(paragraph, area);
+}
+
+
 pub fn render_layout<B: Backend>(
     f: &mut Frame<B>,
     layout: &[Rect],
@@ -17,7 +45,7 @@ pub fn render_layout<B: Backend>(
 
     let visible_processes = &processes[scroll_offset..(scroll_offset + height).min(processes.len())];
 
-    let header_cells = ["PID", "Name", "CPU %", "Memory %"]
+    let header_cells = ["PID", "PPID", "Name", "State", "CPU %", "Memory %", "Start Time", "Priority"]
         .iter()
         .map(|h| Cell::from(*h).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)));
 
@@ -26,9 +54,13 @@ pub fn render_layout<B: Backend>(
         .map(|p| {
             let cells = vec![
                 Cell::from(p.pid.to_string()),
+                Cell::from(p.ppid.to_string()),
                 Cell::from(p.name.clone()),
+                Cell::from(p.state.clone()),
                 Cell::from(format!("{:.2}%", p.cpu_usage)),
                 Cell::from(format!("{:.2}%", p.memory_usage)),
+                Cell::from(p.start_time.to_string()),
+                Cell::from(p.priority.to_string()),
             ];
             Row::new(cells)
         })
@@ -44,10 +76,14 @@ pub fn render_layout<B: Backend>(
                 .style(Style::default().fg(Color::White)),
         )
         .widths(&[
+            Constraint::Percentage(6),
+            Constraint::Percentage(8),
+            Constraint::Percentage(25),
             Constraint::Percentage(10),
-            Constraint::Percentage(40),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
+            Constraint::Percentage(10),
+            Constraint::Percentage(10),
+            Constraint::Percentage(15),
+            Constraint::Percentage(10),
         ]);
 
     f.render_widget(table, layout[0]);

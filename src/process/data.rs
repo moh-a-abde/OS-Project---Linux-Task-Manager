@@ -4,9 +4,13 @@ use std::io::{self, BufRead};
 
 pub struct ProcessUsage {
     pub pid: i32,
+    pub ppid: i32,           // New field for Parent PID
     pub name: String,
-    pub cpu_usage: f64,      // Now stores CPU percentage as f64
-    pub memory_usage: f64,   // Now stores memory percentage as f64
+    pub cpu_usage: f64,      // Stores CPU percentage as f64
+    pub memory_usage: f64,   // Stores memory percentage as f64
+    pub state: String,       // New field for process state
+    pub start_time: u64,     // New field for start time
+    pub priority: i64,       // New field for priority
 }
 
 fn calculate_cpu_usage_percentage(process_cpu_ticks: u64, total_cpu_ticks: u64) -> f64 {
@@ -48,12 +52,22 @@ pub fn get_processes() -> Vec<ProcessUsage> {
                 let cpu_usage = stat.utime + stat.stime;
                 let memory_usage = stat.vsize / 1024;  // Convert to KB
                 total_used_memory += memory_usage;
+                
+                // Fetch additional information
+                let ppid = stat.ppid;
+                let state = stat.state.to_string();
+                let start_time = stat.starttime;
+                let priority = stat.priority;
 
                 processes.push(ProcessUsage {
                     pid: stat.pid,
+                    ppid,
                     name: stat.comm.clone(),
                     cpu_usage: cpu_usage as f64,  // Temporarily store raw CPU ticks
                     memory_usage: memory_usage as f64,  // Temporarily store raw memory usage
+                    state,
+                    start_time,
+                    priority,
                 });
             }
         }
