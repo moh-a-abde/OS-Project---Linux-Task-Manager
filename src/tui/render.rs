@@ -8,6 +8,17 @@ use crate::process::data::ProcessUsage;
 // Import the necessary modules
 use sysinfo::{System, SystemExt, ProcessorExt};
 
+pub fn render_status_bar<B: Backend>(f: &mut Frame<B>, area: Rect) {
+    let status_text = "Commands: [q] Quit | [cpu/memory/ppid/state/owner/start_time/priority] Sort";
+    
+    let status_bar = Paragraph::new(status_text)
+        .style(Style::default().fg(Color::Gray))
+        .block(Block::default().borders(Borders::ALL).title("Help"))
+        .alignment(Alignment::Left);
+    
+    f.render_widget(status_bar, area);
+}
+
 // Function to render the system information header
 pub fn render_system_info<B: Backend>(f: &mut Frame<B>, area: Rect, system: &System) {
     let cpu_usage = system.processors().iter().map(|p| p.cpu_usage()).sum::<f32>() / system.processors().len() as f32;
@@ -59,8 +70,8 @@ pub fn render_layout<B: Backend>(
                 Cell::from(p.state.clone()),
                 Cell::from(format!("{:.2}%", p.cpu_usage)),
                 Cell::from(format!("{:.2}%", p.memory_usage)),
-                Cell::from(p.start_time.to_string()),
-                Cell::from(p.priority.to_string()),
+                Cell::from(p.start_time.clone()),
+                Cell::from(p.priority.clone()),
             ];
             Row::new(cells)
         })
@@ -113,5 +124,7 @@ pub fn render_layout<B: Backend>(
         .wrap(Wrap { trim: true });
 
     f.render_widget(output_text, layout[2]);
+    // Render the status bar in the last layout slot
+    render_status_bar(f, layout[3]);
 }
 

@@ -32,13 +32,6 @@ pub fn main_loop(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()
         // Refresh system information
         system.refresh_all();
 
-        // Sort processes based on the sort criterion
-        if sort_by == "cpu" {
-            processes.sort_by(|a, b| b.cpu_usage.partial_cmp(&a.cpu_usage).unwrap_or(std::cmp::Ordering::Equal));
-        } else if sort_by == "memory" {
-            processes.sort_by(|a, b| b.memory_usage.partial_cmp(&a.memory_usage).unwrap_or(std::cmp::Ordering::Equal));
-        }
-
         // Draw the TUI layout
         terminal.draw(|f| {
             let chunks = Layout::default()
@@ -47,7 +40,8 @@ pub fn main_loop(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()
                     Constraint::Percentage(10), // System Info Header
                     Constraint::Percentage(50), // Processes Table
                     Constraint::Percentage(10), // Input
-                    Constraint::Percentage(30), // Command Output
+                    Constraint::Percentage(20), // Command Output
+                    Constraint::Percentage(10), // Status Bar
                 ].as_ref())
                 .split(f.size());
 
