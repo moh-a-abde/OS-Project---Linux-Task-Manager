@@ -1,3 +1,5 @@
+![Screenshot-v1](./v1.png)
+
 # ⚙️ **THE Process Manager**
 
 A 🦀 **Rust-based** command-line 💻 application that monitors and displays detailed 📊 process metrics. This 🛠️ tool retrieves 🧠 **CPU** and 💾 **memory usage** data for processes running on the system and allows sorting by either 🧠 CPU or 💾 memory usage.
